@@ -7,12 +7,12 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from . import models, schemas
-from .database import Base, SessionLocal, engine
+from .database import SessionLocal, init_db
 
 app = FastAPI(title="Order Service")
 CATALOG_SERVICE_URL = os.getenv("CATALOG_SERVICE_URL", "http://127.0.0.1:8000")
 
-Base.metadata.create_all(bind=engine)
+init_db()
 
 
 def get_db() -> Generator[Session, None, None]:

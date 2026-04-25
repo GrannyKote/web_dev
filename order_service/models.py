@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
-from .database import Base
+from .database import Base, DB_SCHEMA
 
 
 def utc_now() -> datetime:
@@ -30,7 +30,12 @@ class OrderItem(Base):
     __tablename__ = "order_item"
 
     id = Column(Integer, primary_key=True, index=True)
-    id_order = Column(Integer, ForeignKey("order.id", ondelete="CASCADE"), nullable=False, index=True)
+    id_order = Column(
+        Integer,
+        ForeignKey(f"{DB_SCHEMA}.order.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     id_item = Column(Integer, nullable=False)
     name = Column(String(255), nullable=False)
     quantity = Column(Integer, nullable=True)

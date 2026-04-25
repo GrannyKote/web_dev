@@ -5,11 +5,11 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from sqlalchemy.orm import Session
 
 from . import models, schemas
-from .database import Base, SessionLocal, engine
+from .database import SessionLocal, init_db
 
 app = FastAPI(title="Catalog Service")
 
-Base.metadata.create_all(bind=engine)
+init_db()
 
 
 def get_db() -> Generator[Session, None, None]:

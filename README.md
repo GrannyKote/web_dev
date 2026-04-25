@@ -8,6 +8,29 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
+## PostgreSQL setup
+
+Create two databases in PostgreSQL:
+
+- `catalog_db`
+- `order_db`
+
+Set environment variables before running services:
+
+```bash
+set CATALOG_DATABASE_URL=postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/catalog_db
+set ORDER_DATABASE_URL=postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/order_db
+set CATALOG_DB_SCHEMA=catalog
+set ORDER_DB_SCHEMA=orders
+```
+
+Initialize schema and create missing tables from application scripts:
+
+```bash
+python -m catalog_service.init_db
+python -m order_service.init_db
+```
+
 ## Run services
 
 Catalog service (port 8000):
