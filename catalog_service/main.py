@@ -1,13 +1,25 @@
 import base64
 from collections.abc import Generator
+from typing import Annotated, Literal
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from . import models, schemas
 from .database import SessionLocal, init_db
 
 app = FastAPI(title="Catalog Service")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 init_db()
 
@@ -50,9 +62,25 @@ def to_response(item: models.Item) -> schemas.ItemResponse:
     )
 
 
+Feature1Filter = Literal["вариант 1", "вариант 2"]
+
+
+@app.get("/catalog/feature-3-values", response_model=list[str])
+def get_feature_3_values(db: Session = Depends(get_db)) -> list[str]:
+    """Уникальные непустые значения feature_3 для фильтра в каталоге."""
+    rows = (
+        db.query(models.Item.feature_3)
+        .filter(models.Item.feature_3.isnot(None))
+        .filter(models.Item.feature_3 != "")
+        .distinct()
+        .all()
+    )
+    return sorted({row[0] for row in rows if row[0]})
+
+
 @app.get("/catalog", response_model=list[schemas.ItemResponse])
 def get_items(
-    feature_1: str | None = None,
+    feature_1: Annotated[Feature1Filter | None, Query()] = None,
     feature_2_from: float | None = None,
     feature_2_to: float | None = None,
     feature_3: str | None = None,

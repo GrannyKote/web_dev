@@ -1,10 +1,16 @@
-from sqlalchemy import JSON, Column, Float, Integer, LargeBinary, String, Text
+from sqlalchemy import CheckConstraint, JSON, Column, Float, Integer, LargeBinary, String, Text
 
 from .database import Base
 
 
 class Item(Base):
     __tablename__ = "item"
+    __table_args__ = (
+        CheckConstraint(
+            "feature_1 IS NULL OR feature_1 IN ('вариант 1', 'вариант 2')",
+            name="ck_item_feature_1_allowed",
+        ),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
