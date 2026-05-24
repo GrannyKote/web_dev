@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from . import models, schemas
+from .auth import CurrentUser, require_auth
 from .database import SessionLocal, init_db
 
 app = FastAPI(title="Catalog Service")
@@ -15,6 +16,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -106,8 +109,12 @@ def get_item(item_id: int, db: Session = Depends(get_db)) -> schemas.ItemRespons
     return to_response(item)
 
 
-@app.post("/catalog", response_model=schemas.ItemResponse)
-def add_item(payload: schemas.ItemCreate, db: Session = Depends(get_db)) -> schemas.ItemResponse:
+@app.post("/catalog", response_model=schemas.ItemResponse, status_code=status.HTTP_201_CREATED)
+def add_item(
+    payload: schemas.ItemCreate,
+    db: Session = Depends(get_db),
+    _: CurrentUser = Depends(require_auth),
+) -> schemas.ItemResponse:
     item = models.Item(
         name=payload.name,
         description=payload.description or "",
@@ -130,6 +137,7 @@ def update_item(
     item_id: int,
     payload: schemas.ItemUpdate,
     db: Session = Depends(get_db),
+    _: CurrentUser = Depends(require_auth),
 ) -> schemas.ItemResponse:
     item = db.query(models.Item).filter(models.Item.id == item_id).first()
     if item is None:
@@ -147,7 +155,11 @@ def update_item(
 
 
 @app.delete("/catalog/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_item(item_id: int, db: Session = Depends(get_db)) -> None:
+def delete_item(
+    item_id: int,
+    db: Session = Depends(get_db),
+    _: CurrentUser = Depends(require_auth),
+) -> None:
     item = db.query(models.Item).filter(models.Item.id == item_id).first()
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")

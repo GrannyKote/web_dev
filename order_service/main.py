@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, joinedload
 
 from . import models, schemas
+from .auth import CurrentUser, require_auth
 from .database import SessionLocal, init_db
 
 app = FastAPI(title="Order Service")
@@ -16,6 +17,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -71,6 +74,21 @@ def to_order_response(order: models.Order) -> schemas.OrderResponse:
         updated_at=order.updated_at,
         items=order.items,
     )
+
+
+@app.get("/order", response_model=list[schemas.OrderResponse])
+def list_orders(
+    db: Session = Depends(get_db),
+    _: CurrentUser = Depends(require_auth),
+) -> list[schemas.OrderResponse]:
+    """Список заказов. Доступно только авторизованным пользователям."""
+    orders = (
+        db.query(models.Order)
+        .options(joinedload(models.Order.items))
+        .order_by(models.Order.id.desc())
+        .all()
+    )
+    return [to_order_response(order) for order in orders]
 
 
 @app.get("/order/{number}", response_model=schemas.OrderResponse)
@@ -134,6 +152,7 @@ async def update_order(
     order_id: int,
     payload: schemas.OrderUpdate,
     db: Session = Depends(get_db),
+    _: CurrentUser = Depends(require_auth),
 ) -> schemas.OrderResponse:
     order = (
         db.query(models.Order)
@@ -184,7 +203,11 @@ async def update_order(
 
 
 @app.delete("/order/{order_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_order(order_id: int, db: Session = Depends(get_db)) -> None:
+def delete_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    _: CurrentUser = Depends(require_auth),
+) -> None:
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if order is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
