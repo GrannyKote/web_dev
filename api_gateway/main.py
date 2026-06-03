@@ -7,11 +7,13 @@ from fastapi.middleware.cors import CORSMiddleware
 AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://127.0.0.1:8002").rstrip("/")
 CATALOG_SERVICE_URL = os.getenv("CATALOG_SERVICE_URL", "http://127.0.0.1:8000").rstrip("/")
 ORDER_SERVICE_URL = os.getenv("ORDER_SERVICE_URL", "http://127.0.0.1:8001").rstrip("/")
+ADMIN_SERVICE_URL = os.getenv("ADMIN_SERVICE_URL", "http://127.0.0.1:8003").rstrip("/")
 
 ROUTE_MAP: dict[str, str] = {
     "auth": AUTH_SERVICE_URL,
     "catalog": CATALOG_SERVICE_URL,
     "order": ORDER_SERVICE_URL,
+    "admin": ADMIN_SERVICE_URL,
 }
 
 HOP_BY_HOP_HEADERS = {

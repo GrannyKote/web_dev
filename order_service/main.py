@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import os
 from collections.abc import Generator
 from datetime import datetime, timezone
@@ -10,6 +12,8 @@ from sqlalchemy.orm import Session, joinedload
 from . import models, schemas
 from .auth import CurrentUser, require_auth
 from .database import SessionLocal, init_db
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Order Service")
 app.add_middleware(
@@ -27,6 +31,35 @@ app.add_middleware(
 CATALOG_SERVICE_URL = os.getenv("CATALOG_SERVICE_URL", "http://127.0.0.1:8000")
 
 init_db()
+
+
+@app.on_event("startup")
+async def _start_kafka_consumer() -> None:
+    from .kafka_consumer import run_consumer
+
+    stop_event = asyncio.Event()
+    app.state.kafka_stop_event = stop_event
+
+    async def _runner() -> None:
+        try:
+            await run_consumer(stop_event)
+        except Exception:
+            logger.exception("Order Kafka consumer crashed")
+
+    app.state.kafka_task = asyncio.create_task(_runner())
+
+
+@app.on_event("shutdown")
+async def _stop_kafka_consumer() -> None:
+    stop_event: asyncio.Event | None = getattr(app.state, "kafka_stop_event", None)
+    task: asyncio.Task | None = getattr(app.state, "kafka_task", None)
+    if stop_event is not None:
+        stop_event.set()
+    if task is not None:
+        try:
+            await asyncio.wait_for(task, timeout=5.0)
+        except asyncio.TimeoutError:
+            task.cancel()
 
 
 def get_db() -> Generator[Session, None, None]:
